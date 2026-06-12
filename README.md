@@ -23,7 +23,12 @@
 
 ### Использование готового приложения
 
-Скачайте бинарный файл для вашей платформы с [GitHub Releases](https://github.com/bikuta13/WOLPRo/releases)
+Скачайте бинарный файл для вашей платформы с [GitHub Releases](https://github.com/bikuta13/WOLPRo/releases) или из папки [release-builds](release-builds/).
+
+Доступные готовые сборки:
+- `WOL-Pro-macOS-arm64.zip` - macOS Apple Silicon (M1/M2/M3/M4)
+- `WOL-Pro-macOS-amd64.zip` - macOS Intel
+- `WOL-Pro-Windows-amd64.zip` - Windows 64-bit
 
 ### Из исходного кода
 
