@@ -13,9 +13,12 @@ import (
 // ScanMACByIP сканирует MAC адрес по IP адресу
 func ScanMACByIP(ipAddr string) (string, error) {
 	// Валидируем IP адрес
-	if net.ParseIP(ipAddr) == nil {
-		return "", fmt.Errorf("некорректный IP адрес: %s", ipAddr)
+	ip := net.ParseIP(ipAddr)
+	if ip == nil || ip.To4() == nil {
+		return "", fmt.Errorf("некорректный IPv4 адрес: %s", ipAddr)
 	}
+
+	primeARP(ipAddr)
 
 	// В зависимости от ОС используем разные команды
 	switch {
@@ -36,16 +39,7 @@ func scanMACDarwin(ipAddr string) (string, error) {
 	cmd := exec.Command("arp", "-n", ipAddr)
 	output, err := cmd.Output()
 	if err != nil {
-		// IP не в ARP таблице - пробуем ping первым чтобы разрешить адрес
-		pingCmd := exec.Command("ping", "-c", "1", "-W", "1", ipAddr)
-		_ = pingCmd.Run() // Игнорируем результат
-
-		// Пробуем arp снова
-		cmd = exec.Command("arp", "-n", ipAddr)
-		output, err = cmd.Output()
-		if err != nil {
-			return "", fmt.Errorf("устройство %s не отвечает на ping и не найдено в ARP таблице. Проверьте IP адрес и что устройство подключено к сети", ipAddr)
-		}
+		return "", fmt.Errorf("устройство %s не отвечает на ping и не найдено в ARP таблице. Проверьте IP адрес и что устройство подключено к сети", ipAddr)
 	}
 
 	// Парсим вывод: ipAddr at xx:xx:xx:xx:xx:xx on en0 ...
@@ -138,6 +132,21 @@ func isLinux() bool {
 
 func isWindows() bool {
 	return runtime.GOOS == "windows"
+}
+
+func primeARP(ipAddr string) {
+	var cmd *exec.Cmd
+
+	switch {
+	case isWindows():
+		cmd = exec.Command("ping", "-n", "1", "-w", "1000", ipAddr)
+	case isDarwin():
+		cmd = exec.Command("ping", "-c", "1", "-W", "1000", ipAddr)
+	default:
+		cmd = exec.Command("ping", "-c", "1", "-W", "1", ipAddr)
+	}
+
+	_ = cmd.Run()
 }
 
 // GetOS возвращает текущую операционную систему

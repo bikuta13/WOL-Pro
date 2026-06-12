@@ -132,7 +132,7 @@ class WOLApp {
             this.setStatus(`Отправка пакета на ${device.name}...`, '⏳');
             const result = await window.go.app.AppInstance.SendWOL(this.selectedDeviceId);
 
-            if (result.success === "true") {
+            if (result.success) {
                 this.showSuccess(result.message);
                 this.setStatus(result.message, '✅');
             } else {
@@ -208,7 +208,7 @@ class WOLApp {
         try {
             this.setStatus('Удаление...', '⏳');
             const result = await window.go.app.AppInstance.DeleteDevice(this.selectedDeviceId);
-            if (result.success !== "true") {
+            if (!result.success) {
                 this.showError(result.message);
                 this.setStatus('Ошибка удаления', '❌');
                 return;
@@ -240,7 +240,7 @@ class WOLApp {
                 const result = await window.go.app.AppInstance.UpdateDevice(
                     this.selectedDeviceId, name, mac, ip
                 );
-                if (result.success === "true") {
+                if (result.success) {
                     this.showSuccess(result.message);
                 } else {
                     this.showError(result.message);
@@ -249,7 +249,7 @@ class WOLApp {
                 }
             } else {
                 const result = await window.go.app.AppInstance.AddDevice(name, mac, ip);
-                if (result.success === "true") {
+                if (result.success) {
                     this.showSuccess(result.message);
                 } else {
                     this.showError(result.message);
@@ -304,7 +304,7 @@ class WOLApp {
 
             const result = await window.go.app.AppInstance.ScanMACByIP(ipAddr);
 
-            if (result.success === "true") {
+            if (result.success) {
                 document.getElementById('scanResultMAC').textContent = result.mac;
                 document.getElementById('scanResult').style.display = 'block';
                 this.showSuccess(result.message);

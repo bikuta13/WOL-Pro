@@ -58,7 +58,7 @@ wails version
 ### 3. Клонирование проекта
 
 ```bash
-git clone https://github.com/bikuta13/WOLPRo.git
+git clone https://github.com/bikuta13/WOL-Pro.git
 cd wol-pro
 ```
 
@@ -350,4 +350,4 @@ RUN wails build -platform linux/amd64 -o wol-pro
 
 - [Документация Wails](https://wails.io/docs)
 - [Go Official](https://golang.org)
-- [GitHub Issues](https://github.com/bikuta13/WOLPRo/issues)
+- [GitHub Issues](https://github.com/bikuta13/WOL-Pro/issues)

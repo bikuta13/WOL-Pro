@@ -38,7 +38,7 @@ func main() {
 	log.SetOutput(logFile)
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	log.Println("🚀 WOL Pro v2.0.0 starting...")
+	log.Println("🚀 WOL Pro v2.0.1 starting...")
 
 	// Создаем приложение
 	appInstance := app.NewApp()

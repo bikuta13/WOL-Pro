@@ -23,7 +23,7 @@
 
 ### Использование готового приложения
 
-Скачайте бинарный файл для вашей платформы с [GitHub Releases](https://github.com/bikuta13/WOLPRo/releases) или из папки [release-builds](release-builds/).
+Скачайте бинарный файл для вашей платформы с [GitHub Releases](https://github.com/bikuta13/WOL-Pro/releases) или из папки [release-builds](release-builds/).
 
 Доступные готовые сборки:
 - `WOL-Pro-macOS-arm64.zip` - macOS Apple Silicon (M1/M2/M3/M4)
@@ -34,7 +34,7 @@
 
 ```bash
 # 1. Клонирование
-git clone https://github.com/bikuta13/WOLPRo.git
+git clone https://github.com/bikuta13/WOL-Pro.git
 cd wol-pro
 
 # 2. Установка Go (если еще не установлен)
@@ -190,12 +190,18 @@ wol-pro/
 
 ## История версий
 
-### Версия 2.0.0 (Текущая)
-- ✨ Полная миграция на Go + Wails 2
-- 🎨 Современный веб-интерфейс (HTML/CSS/JavaScript)
-- ⚡ Улучшенная производительность
-- 🌙 Темная тема по умолчанию
-- 🔄 Горячая перезагрузка для разработки
+### Версия 2.0.1 (Текущая)
+- ✅ Валидация IPv4 адресов
+- ✅ Стабильная сортировка устройств
+- ✅ Структурированные ответы Wails API
+- ✅ Обновленные готовые сборки для macOS и Windows
+
+### Версия 2.0.0
+- Полная миграция на Go + Wails 2
+- Современный веб-интерфейс (HTML/CSS/JavaScript)
+- Улучшенная производительность
+- Темная тема по умолчанию
+- Горячая перезагрузка для разработки
 
 ### Версия 1.0.0 (Архив)
 - Исходная версия на Python + tkinter

@@ -74,7 +74,7 @@ JavaScript логика:
 
 ```bash
 # 1. Клонирование репозитория
-git clone https://github.com/bikuta13/WOLPRo.git
+git clone https://github.com/bikuta13/WOL-Pro.git
 cd wol-pro
 
 # 2. Загрузка зависимостей Go

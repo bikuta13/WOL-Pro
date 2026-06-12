@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -60,6 +63,10 @@ func (m *Manager) Add(name, macAddr, ipAddr string) (string, error) {
 		return "", fmt.Errorf("некорректный MAC адрес: %w", err)
 	}
 
+	if err := validateIPv4(ipAddr); err != nil {
+		return "", err
+	}
+
 	// Нормализуем MAC адрес
 	normalizedMAC, _ := wol.NormalizeMAC(macAddr)
 
@@ -102,6 +109,14 @@ func (m *Manager) GetAll() []*Device {
 	for _, dev := range m.devices {
 		devices = append(devices, dev)
 	}
+	sort.SliceStable(devices, func(i, j int) bool {
+		left := strings.ToLower(devices[i].Name)
+		right := strings.ToLower(devices[j].Name)
+		if left == right {
+			return devices[i].CreatedAt < devices[j].CreatedAt
+		}
+		return left < right
+	})
 	return devices
 }
 
@@ -113,6 +128,10 @@ func (m *Manager) Update(id, name, macAddr, ipAddr string) error {
 
 	if err := wol.ValidateMAC(macAddr); err != nil {
 		return fmt.Errorf("некорректный MAC адрес: %w", err)
+	}
+
+	if err := validateIPv4(ipAddr); err != nil {
+		return err
 	}
 
 	normalizedMAC, _ := wol.NormalizeMAC(macAddr)
@@ -228,5 +247,18 @@ func (m *Manager) Load() error {
 	}
 
 	log.Printf("✅ Загружено %d устройств", len(devices))
+	return nil
+}
+
+func validateIPv4(ipAddr string) error {
+	if ipAddr == "" {
+		return nil
+	}
+
+	ip := net.ParseIP(ipAddr)
+	if ip == nil || ip.To4() == nil {
+		return fmt.Errorf("некорректный IPv4 адрес: %s", ipAddr)
+	}
+
 	return nil
 }
