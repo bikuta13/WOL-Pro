@@ -32,6 +32,11 @@ ENV/
 *.swo
 *~
 .DS_Store
+Thumbs.db
+
+# Frontend / Wails
+node_modules/
+frontend/dist/
 
 # Logs and temp
 *.log
@@ -51,8 +56,15 @@ WOL-Pro
 *.dylib
 *.test
 *.out
+vendor/
 
 # Application config/data
 config/
 .config/
 AppData/
+devices.json
+
+# Environment variables
+.env
+.env.*
+!.env.example
