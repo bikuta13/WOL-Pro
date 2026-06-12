@@ -1,0 +1,14 @@
+{
+  "name": "WOL Pro",
+  "outputfilename": "WOL-Pro",
+  "debounceMS": 10,
+  "devserverport": 34115,
+  "frontend": {
+    "dir": "frontend/dist",
+    "wailsjs": "frontend/wailsjs"
+  },
+  "build": {
+    "dir": "build/bin",
+    "outputtype": "desktop"
+  }
+}

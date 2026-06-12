@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOL Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .version {
+            color: #888;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-wake {
+            background: #ff9500;
+            color: #fff;
+        }
+
+        .btn-add {
+            background: #34c759;
+            color: #fff;
+        }
+
+        .btn-edit {
+            background: #007aff;
+            color: #fff;
+        }
+
+        .btn-delete {
+            background: #ff3b30;
+            color: #fff;
+        }
+
+        .btn-scan {
+            background: #5ac8fa;
+            color: #fff;
+        }
+
+        .btn-save {
+            background: #34c759;
+            color: #fff;
+        }
+
+        .btn-cancel {
+            background: #555;
+            color: #fff;
+        }
+
+        .table-wrapper {
+            background: #242424;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            flex: 1;
+        }
+
+        thead {
+            background: #1a1a1a;
+            position: sticky;
+            top: 0;
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #333;
+            color: #fff;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #333;
+        }
+
+        tbody tr {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        tbody tr:hover {
+            background: #2a2a2a;
+        }
+
+        tbody tr.selected {
+            background: #004e8a;
+        }
+
+        .empty-table {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            color: #888;
+            font-size: 16px;
+        }
+
+        .status-bar {
+            background: #242424;
+            padding: 12px 16px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-icon {
+            font-size: 18px;
+        }
+
+        .status-text {
+            color: #888;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #242424;
+            border-radius: 8px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #007aff;
+            background: #1f1f1f;
+        }
+
+        .form-hint {
+            color: #888;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-error {
+            background: #5c2a2a;
+            color: #ff6b6b;
+        }
+
+        .alert-success {
+            background: #2a5c2a;
+            color: #6bff6b;
+        }
+
+        .scan-result {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 15px 0;
+        }
+
+        .scan-result-label {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .scan-result-value {
+            background: #242424;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 WOL Pro</h1>
+            <p class="version">Wake-on-LAN управление устройствами v2.0.0</p>
+        </header>
+
+        <div id="alert" class="alert"></div>
+
+        <div class="button-group">
+            <button class="btn-wake" id="btnWake">▶️ Включить (Wake)</button>
+            <button class="btn-add" id="btnAdd">➕ Добавить</button>
+            <button class="btn-edit" id="btnEdit">✏️ Редактировать</button>
+            <button class="btn-delete" id="btnDelete">🗑️ Удалить</button>
+            <button class="btn-scan" id="btnScan">🔍 Сканер MAC</button>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="devicesTable">
+                <thead>
+                    <tr>
+                        <th>📱 Устройство</th>
+                        <th>🔗 MAC адрес</th>
+                        <th>🌐 IP адрес</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr class="empty-table">
+                        <td colspan="3">Устройств не найдено. Добавьте первое устройство</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="status-bar">
+            <span class="status-icon" id="statusIcon">✅</span>
+            <span class="status-text" id="statusText">Готово</span>
+        </div>
+    </div>
+
+    <!-- Modal для добавления/редактирования -->
+    <div id="deviceModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Добавить устройство</h2>
+            <div class="form-group">
+                <label for="deviceName">Название устройства *</label>
+                <input type="text" id="deviceName" placeholder="Например: Мой компьютер">
+            </div>
+            <div class="form-group">
+                <label for="deviceMac">MAC адрес *</label>
+                <input type="text" id="deviceMac" placeholder="AA:BB:CC:DD:EE:FF">
+                <div class="form-hint">Формат: XX:XX:XX:XX:XX:XX или XX-XX-XX-XX-XX-XX</div>
+            </div>
+            <div class="form-group">
+                <label for="deviceIp">IP адрес (опционально)</label>
+                <input type="text" id="deviceIp" placeholder="192.168.1.100">
+                <div class="form-hint">Если не указан, используется broadcast адрес 255.255.255.255</div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-save" id="btnSaveDevice">Сохранить</button>
+                <button class="btn-cancel" id="btnCancelModal">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal для сканирования MAC по IP -->
+    <div id="scanModal" class="modal">
+        <div class="modal-content">
+            <h2>🔍 Сканер MAC адреса</h2>
+            <div class="form-group">
+                <label for="scanIP">IP адрес для сканирования *</label>
+                <input type="text" id="scanIP" placeholder="192.168.1.100">
+            </div>
+            <div id="scanResult" class="scan-result" style="display: none;">
+                <div class="scan-result-label">Найденный MAC адрес:</div>
+                <div id="scanResultMAC" class="scan-result-value"></div>
+                <button id="btnUseScanMAC" class="btn-save">✓ Использовать</button>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-save" id="btnStartScan">Сканировать</button>
+                <button class="btn-cancel" id="btnCancelScan">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal подтверждения удаления -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h2>🗑️ Подтверждение удаления</h2>
+            <p id="confirmMessage" style="margin-bottom: 10px; color: #e0e0e0;"></p>
+            <div class="modal-buttons">
+                <button class="btn-delete" id="btnConfirmYes">Удалить</button>
+                <button class="btn-cancel" id="btnConfirmNo">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
