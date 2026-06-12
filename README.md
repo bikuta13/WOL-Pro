@@ -23,13 +23,13 @@
 
 ### Использование готового приложения
 
-Скачайте бинарный файл для вашей платформы с [GitHub Releases](https://github.com/yourusername/wol-pro/releases)
+Скачайте бинарный файл для вашей платформы с [GitHub Releases](https://github.com/bikuta13/WOLPRo/releases)
 
 ### Из исходного кода
 
 ```bash
 # 1. Клонирование
-git clone https://github.com/yourusername/wol-pro.git
+git clone https://github.com/bikuta13/WOLPRo.git
 cd wol-pro
 
 # 2. Установка Go (если еще не установлен)
@@ -211,3 +211,5 @@ MIT License
 ## Разработчик
 
 Разработано как приложение для управления Wake-on-LAN на Go + Wails.
+
+**Developed by Viktor Se**

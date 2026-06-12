@@ -6,7 +6,7 @@
 
 ### Способ 1️⃣: Использование готового приложения (2 минуты)
 
-Скачайте готовое приложение для вашей платформы с [GitHub Releases](https://github.com/yourusername/wol-pro/releases):
+Скачайте готовое приложение для вашей платформы с [GitHub Releases](https://github.com/bikuta13/WOLPRo/releases):
 - **Windows**: `WOL-Pro.exe`
 - **macOS**: `WOL-Pro.app`
 - **Linux**: `wol-pro`
@@ -27,7 +27,7 @@
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
 # 3. Клонировать репозиторий
-git clone https://github.com/yourusername/wol-pro.git
+git clone https://github.com/bikuta13/WOLPRo.git
 cd wol-pro
 
 # 4. Запустить в режиме разработки

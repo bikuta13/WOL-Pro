@@ -130,8 +130,8 @@ INDEX.md                        - Этот файл
 
 ## 📞 Поддержка и связь
 
-- 🐛 **Найден баг?** Создайте [Issue](https://github.com/yourusername/wol-pro/issues) на GitHub
-- 💡 **Есть идея?** Обсудите в [Discussions](https://github.com/yourusername/wol-pro/discussions)
+- 🐛 **Найден баг?** Создайте [Issue](https://github.com/bikuta13/WOLPRo/issues) на GitHub
+- 💡 **Есть идея?** Обсудите в [Discussions](https://github.com/bikuta13/WOLPRo/discussions)
 - ❓ **Вопрос?** Смотрите [QUICKSTART.md FAQ](QUICKSTART.md#часто-задаваемые-вопросы)
 
 ## 📄 Лицензия

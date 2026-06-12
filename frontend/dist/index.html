@@ -122,6 +122,33 @@
             flex-direction: column;
         }
 
+        .developer-signature {
+            position: fixed;
+            /* Фиксируем на экране */
+            bottom: 10px;
+            /* Отступ снизу */
+            left: 0;
+            /* Прижимаем к левому краю */
+            width: 100%;
+            /* Растягиваем на всю ширину для центрирования */
+            text-align: center;
+            /* Центрируем текст */
+            font-size: 12px;
+            /* Аккуратный размер */
+            color: #888888;
+            /* Серый цвет, хорошо виден на темном фоне */
+            opacity: 0.6;
+            /* Делаем полупрозрачным */
+            z-index: 9999;
+            /* Помещаем поверх всех остальных элементов */
+            pointer-events: none;
+            /* Чтобы текст не мешал нажимать на кнопки под ним */
+            user-select: none;
+            /* Запрещаем выделение текста */
+            font-family: sans-serif;
+            letter-spacing: 0.5px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -406,6 +433,11 @@
     </div>
 
     <script src="app.js"></script>
+    <div class="developer-signature">
+        Developed by Viktor Se
+    </div>
 </body>
+
+
 
 </html>

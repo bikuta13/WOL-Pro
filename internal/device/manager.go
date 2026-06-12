@@ -75,9 +75,13 @@ func (m *Manager) Add(name, macAddr, ipAddr string) (string, error) {
 	}
 
 	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.devices[id] = device
-	m.save()
-	m.mu.Unlock()
+	if err := m.save(); err != nil {
+		delete(m.devices, id)
+		return "", fmt.Errorf("не удалось сохранить устройство: %w", err)
+	}
 
 	return id, nil
 }
@@ -103,6 +107,10 @@ func (m *Manager) GetAll() []*Device {
 
 // Update обновляет устройство
 func (m *Manager) Update(id, name, macAddr, ipAddr string) error {
+	if name == "" {
+		return fmt.Errorf("название устройства не может быть пустым")
+	}
+
 	if err := wol.ValidateMAC(macAddr); err != nil {
 		return fmt.Errorf("некорректный MAC адрес: %w", err)
 	}
@@ -117,11 +125,21 @@ func (m *Manager) Update(id, name, macAddr, ipAddr string) error {
 		return fmt.Errorf("устройство не найдено")
 	}
 
+	oldName := device.Name
+	oldMacAddr := device.MacAddr
+	oldIPAddr := device.IPAddr
+
 	device.Name = name
 	device.MacAddr = normalizedMAC
 	device.IPAddr = ipAddr
 
-	m.save()
+	if err := m.save(); err != nil {
+		device.Name = oldName
+		device.MacAddr = oldMacAddr
+		device.IPAddr = oldIPAddr
+		return fmt.Errorf("не удалось сохранить изменения: %w", err)
+	}
+
 	return nil
 }
 
@@ -134,17 +152,21 @@ func (m *Manager) Delete(id string) error {
 		return fmt.Errorf("устройство не найдено")
 	}
 
+	device := m.devices[id]
 	delete(m.devices, id)
-	m.save()
+	if err := m.save(); err != nil {
+		m.devices[id] = device
+		return fmt.Errorf("не удалось сохранить удаление: %w", err)
+	}
 	return nil
 }
 
 // Save сохраняет устройства в JSON файл (потокобезопасный, вызывается извне)
 func (m *Manager) Save() error {
 	m.mu.RLock()
-	err := m.saveInternal()
-	m.mu.RUnlock()
-	return err
+	defer m.mu.RUnlock()
+
+	return m.saveInternal()
 }
 
 // save сохраняет устройства в JSON файл (вызывается под мьютексом)

@@ -59,7 +59,7 @@ HTML структура интерфейса:
 ### `frontend/dist/app.js`
 JavaScript логика:
 - `WOLApp` класс - управляет интерфейсом
-- `window.go.main.AppInstance` - вызов Go методов из JS
+- `window.go.app.AppInstance` - вызов Go методов из JS
 - Обработчики событий кнопок
 - Управление таблицей и модальным окном
 
@@ -74,7 +74,7 @@ JavaScript логика:
 
 ```bash
 # 1. Клонирование репозитория
-git clone https://github.com/yourusername/wol-pro.git
+git clone https://github.com/bikuta13/WOLPRo.git
 cd wol-pro
 
 # 2. Загрузка зависимостей Go
@@ -150,7 +150,7 @@ func (a *AppInstance) CallNewWOLFeature(macAddr string) (bool, string) {
 ```javascript
 // В JS классе WOLApp
 async onNewFeature() {
-    const [success, msg] = await window.go.main.AppInstance.CallNewWOLFeature(mac);
+    const [success, msg] = await window.go.app.AppInstance.CallNewWOLFeature(mac);
     if (success) {
         this.showSuccess(msg);
     } else {
@@ -201,7 +201,7 @@ async onNewOp() {
         this.showError('Выберите устройство');
         return;
     }
-    const msg = await window.go.main.AppInstance.DoOperation(this.selectedDeviceId);
+    const msg = await window.go.app.AppInstance.DoOperation(this.selectedDeviceId);
     this.showSuccess(msg);
 }
 ```
@@ -298,7 +298,7 @@ go test -v ./internal/device/...
 3. **Проверка API методов** в DevTools консоли:
 ```javascript
 // В консоли браузера (Cmd+Alt+I)
-window.go.main.AppInstance.GetDevices().then(devices => console.log(devices));
+window.go.app.AppInstance.GetDevices().then(devices => console.log(devices));
 ```
 
 ## Сборка под различные платформы

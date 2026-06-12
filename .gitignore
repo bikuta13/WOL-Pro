@@ -36,7 +36,6 @@ Thumbs.db
 
 # Frontend / Wails
 node_modules/
-frontend/dist/
 
 # Logs and temp
 *.log
@@ -44,6 +43,7 @@ frontend/dist/
 .claude/
 
 # Build outputs
+dist/
 *.spec
 .pyinstaller/
 wol-pro

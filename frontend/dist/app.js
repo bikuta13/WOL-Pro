@@ -78,19 +78,34 @@ class WOLApp {
 
     renderTable() {
         const tbody = document.getElementById('tableBody');
+        tbody.textContent = '';
 
         if (this.devices.length === 0) {
-            tbody.innerHTML = '<tr class="empty-table"><td colspan="3">Устройств не найдено. Добавьте первое устройство</td></tr>';
+            const row = document.createElement('tr');
+            row.className = 'empty-table';
+
+            const cell = document.createElement('td');
+            cell.colSpan = 3;
+            cell.textContent = 'Устройств не найдено. Добавьте первое устройство';
+
+            row.appendChild(cell);
+            tbody.appendChild(row);
             return;
         }
 
-        tbody.innerHTML = this.devices.map((device, index) => `
-            <tr data-device-id="${device.id}" onclick="app.selectDevice('${device.id}', this)">
-                <td>${device.name}</td>
-                <td>${device.mac_address}</td>
-                <td>${device.ip_address || '—'}</td>
-            </tr>
-        `).join('');
+        this.devices.forEach((device) => {
+            const row = document.createElement('tr');
+            row.dataset.deviceId = device.id;
+            row.addEventListener('click', () => this.selectDevice(device.id, row));
+
+            [device.name, device.mac_address, device.ip_address || '—'].forEach((value) => {
+                const cell = document.createElement('td');
+                cell.textContent = value;
+                row.appendChild(cell);
+            });
+
+            tbody.appendChild(row);
+        });
     }
 
     selectDevice(id, row) {
@@ -192,8 +207,14 @@ class WOLApp {
     async executeDelete() {
         try {
             this.setStatus('Удаление...', '⏳');
-            const message = await window.go.app.AppInstance.DeleteDevice(this.selectedDeviceId);
-            this.showSuccess(message);
+            const result = await window.go.app.AppInstance.DeleteDevice(this.selectedDeviceId);
+            if (result.success !== "true") {
+                this.showError(result.message);
+                this.setStatus('Ошибка удаления', '❌');
+                return;
+            }
+
+            this.showSuccess(result.message);
             this.selectedDeviceId = null;
             await this.loadDevices();
         } catch (error) {
@@ -216,10 +237,16 @@ class WOLApp {
             this.setStatus('Сохранение...', '⏳');
 
             if (this.isEditMode) {
-                const message = await window.go.app.AppInstance.UpdateDevice(
+                const result = await window.go.app.AppInstance.UpdateDevice(
                     this.selectedDeviceId, name, mac, ip
                 );
-                this.showSuccess(message);
+                if (result.success === "true") {
+                    this.showSuccess(result.message);
+                } else {
+                    this.showError(result.message);
+                    this.setStatus('Ошибка обновления', '❌');
+                    return;
+                }
             } else {
                 const result = await window.go.app.AppInstance.AddDevice(name, mac, ip);
                 if (result.success === "true") {

@@ -72,7 +72,7 @@ func (a *AppInstance) AddDevice(name, macAddr, ipAddr string) map[string]string 
 		}
 	}
 	msg := fmt.Sprintf("✅ Устройство '%s' добавлено", name)
-	log.Printf(msg)
+	log.Print(msg)
 	return map[string]string{
 		"success": "true",
 		"id":      id,
@@ -81,28 +81,44 @@ func (a *AppInstance) AddDevice(name, macAddr, ipAddr string) map[string]string 
 }
 
 // UpdateDevice обновляет устройство
-func (a *AppInstance) UpdateDevice(id, name, macAddr, ipAddr string) string {
+func (a *AppInstance) UpdateDevice(id, name, macAddr, ipAddr string) map[string]string {
 	log.Printf("✏️  UpdateDevice вызван для ID: %s", id)
 	log.Printf("  Новые данные: %s (MAC: %s, IP: %s)", name, macAddr, ipAddr)
 	err := a.manager.Update(id, name, macAddr, ipAddr)
 	if err != nil {
-		log.Printf("❌ Ошибка обновления: %v", err)
-		return fmt.Sprintf("Ошибка: %v", err)
+		errMsg := fmt.Sprintf("Ошибка: %v", err)
+		log.Printf("❌ %s", errMsg)
+		return map[string]string{
+			"success": "false",
+			"message": errMsg,
+		}
 	}
-	log.Printf("✅ Устройство обновлено")
-	return fmt.Sprintf("✅ Устройство '%s' обновлено", name)
+	msg := fmt.Sprintf("✅ Устройство '%s' обновлено", name)
+	log.Print(msg)
+	return map[string]string{
+		"success": "true",
+		"message": msg,
+	}
 }
 
 // DeleteDevice удаляет устройство
-func (a *AppInstance) DeleteDevice(id string) string {
+func (a *AppInstance) DeleteDevice(id string) map[string]string {
 	log.Printf("🗑️  DeleteDevice вызван для ID: %s", id)
 	err := a.manager.Delete(id)
 	if err != nil {
-		log.Printf("❌ Ошибка удаления: %v", err)
-		return fmt.Sprintf("Ошибка: %v", err)
+		errMsg := fmt.Sprintf("Ошибка: %v", err)
+		log.Printf("❌ %s", errMsg)
+		return map[string]string{
+			"success": "false",
+			"message": errMsg,
+		}
 	}
-	log.Printf("✅ Устройство удалено")
-	return "✅ Устройство удалено"
+	msg := "✅ Устройство удалено"
+	log.Print(msg)
+	return map[string]string{
+		"success": "true",
+		"message": msg,
+	}
 }
 
 // SendWOL отправляет WOL пакет
@@ -158,7 +174,7 @@ func (a *AppInstance) ScanMACByIP(ipAddr string) map[string]string {
 		}
 	}
 	successMsg := fmt.Sprintf("✅ MAC адрес найден: %s", mac)
-	log.Printf(successMsg)
+	log.Print(successMsg)
 	return map[string]string{
 		"success": "true",
 		"mac":     mac,

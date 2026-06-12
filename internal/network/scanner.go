@@ -88,13 +88,11 @@ func scanMACLinuxAlt(ipAddr string) (string, error) {
 
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
-		if strings.Contains(line, ipAddr) {
-			fields := strings.Fields(line)
-			if len(fields) >= 4 {
-				mac := fields[3]
-				if isValidMAC(mac) {
-					return mac, nil
-				}
+		fields := strings.Fields(line)
+		if len(fields) >= 4 && fields[0] == ipAddr {
+			mac := fields[3]
+			if isValidMAC(mac) {
+				return mac, nil
 			}
 		}
 	}
