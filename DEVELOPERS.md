@@ -66,16 +66,16 @@ JavaScript логика:
 ## Установка для разработки
 
 ### Требования
-- Go 1.21+
-- Wails 2.6+
+- Go 1.22+
+- Wails 2.12+
 - Git
 
 ### Шаги установки
 
 ```bash
 # 1. Клонирование репозитория
-git clone https://github.com/bikuta13/WOL-Pro.git
-cd wol-pro
+git clone https://github.com/bikuta13/WOLPRo.git
+cd WOLPRo
 
 # 2. Загрузка зависимостей Go
 go mod tidy
@@ -287,7 +287,15 @@ async onNewOp() {
 ```bash
 go test ./internal/...
 go test -v ./internal/device/...
+go test -race ./internal/... # Требует CGO и C-компилятор
+node --test frontend/tests/app.test.cjs # Node.js 22+, без npm-зависимостей
 ```
+
+Тесты проверяют сохранение и резервную копию в изолированных временных папках,
+валидацию JSON и MAC, снимки устройств, конкурентный доступ, состав magic packet
+и вычисление broadcast по маске. Тесты фронтенда проверяют повторные запросы,
+устаревшие ответы сканера, выбор устройства и обработку ошибок API.
+Реальная отправка пакетов и запуск GUI в эти тесты не входят.
 
 2. **Проверка с помощью wails dev**:
    - Добавьте несколько устройств
@@ -327,7 +335,7 @@ wails build -platform windows/amd64 -o "WOL-Pro.exe"
 ### Кроссплатформенная сборка с Docker
 ```bash
 # Linux версия на macOS/Windows
-docker run --rm -v $(pwd):/work golang:1.21-alpine \
+docker run --rm -v $(pwd):/work golang:1.22-alpine \
     sh -c "apk add --no-cache libwebkit2gtk-4.0-dev && cd /work && wails build -platform linux/amd64"
 ```
 

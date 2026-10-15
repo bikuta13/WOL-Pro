@@ -1,0 +1,49 @@
+name: Build macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - codex/macos-build
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Test
+        run: |
+          go test ./...
+          go vet ./...
+          node --test frontend/tests/app.test.cjs
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
+      - name: Build universal application
+        run: wails build -platform darwin/universal -m -nosyncgomod -s -o 'WOL Pro'
+      - name: Verify and package
+        run: |
+          lipo -verify_arch arm64 x86_64 'build/bin/WOL Pro.app/Contents/MacOS/WOL Pro'
+          codesign --force --deep --sign - 'build/bin/WOL Pro.app'
+          codesign --verify --deep --strict 'build/bin/WOL Pro.app'
+          mkdir -p build/artifacts
+          ditto -c -k --sequesterRsrc --keepParent 'build/bin/WOL Pro.app' build/artifacts/WOL-Pro-macOS-universal.zip
+          cd build/artifacts
+          shasum -a 256 WOL-Pro-macOS-universal.zip > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WOL-Pro-macOS-universal
+          path: build/artifacts/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

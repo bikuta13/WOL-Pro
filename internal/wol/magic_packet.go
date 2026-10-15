@@ -4,56 +4,47 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 )
 
 // SendMagicPacket отправляет WOL пакет на целевое устройство
 func SendMagicPacket(macAddr, ipAddr string) (bool, string) {
 	// Парсим MAC адрес
-	hwAddr, err := net.ParseMAC(macAddr)
+	hwAddr, err := parseMAC(macAddr)
 	if err != nil {
 		return false, fmt.Sprintf("Некорректный MAC адрес: %v", err)
 	}
 
-	// Собираем magic packet
-	packet := createMagicPacket(hwAddr)
-
-	// Формируем список адресов для отправки:
-	// 1. Глобальный широковещательный адрес
-	// 2. Указанный IP-адрес (unicast)
-	// 3. Широковещательный адрес подсети (если удалось распарсить IP)
-	targetAddrs := []string{"255.255.255.255:9"}
-
-	if ipAddr != "" && ipAddr != "255.255.255.255" {
-		targetAddrs = append(targetAddrs, ipAddr+":9")
-
-		// Пытаемся сформировать subnet broadcast (x.x.x.255)
-		parts := strings.Split(ipAddr, ".")
-		if len(parts) == 4 {
-			subnetBcast := fmt.Sprintf("%s.%s.%s.255:9", parts[0], parts[1], parts[2])
-			if subnetBcast != ipAddr+":9" {
-				targetAddrs = append(targetAddrs, subnetBcast)
-			}
+	ipAddr = strings.TrimSpace(ipAddr)
+	var ip net.IP
+	if ipAddr != "" {
+		ip = net.ParseIP(ipAddr).To4()
+		if ip == nil {
+			return false, fmt.Sprintf("Некорректный IPv4 адрес: %s", ipAddr)
 		}
 	}
+	packet := createMagicPacket(hwAddr)
+	targets := packetTargets(ip, localIPv4Networks())
 
 	successCount := 0
 	var lastErr error
 
 	// Отправляем пакет на все собранные адреса
-	for _, target := range targetAddrs {
-		addr, err := net.ResolveUDPAddr("udp", target)
+	for _, target := range targets {
+		var local *net.UDPAddr
+		if target.source != nil {
+			local = &net.UDPAddr{IP: target.source}
+		}
+		conn, err := net.DialUDP("udp4", local, &net.UDPAddr{IP: target.destination, Port: 9})
 		if err != nil {
 			lastErr = err
 			continue
 		}
 
-		conn, err := net.DialUDP("udp", nil, addr)
-		if err != nil {
-			lastErr = err
-			continue
+		err = conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
+		if err == nil {
+			_, err = conn.Write(packet)
 		}
-
-		_, err = conn.Write(packet)
 		conn.Close()
 
 		if err == nil {
@@ -67,7 +58,66 @@ func SendMagicPacket(macAddr, ipAddr string) (bool, string) {
 		return false, fmt.Sprintf("Ошибка отправки пакета: %v", lastErr)
 	}
 
-	return true, fmt.Sprintf("WOL пакет успешно отправлен на %s (через %d адресов)", macAddr, successCount)
+	return true, fmt.Sprintf("WOL пакет отправлен для %s (отправок: %d). Включение устройства не подтверждено.", hwAddr, successCount)
+}
+
+type packetTarget struct {
+	source      net.IP
+	destination net.IP
+}
+
+// packetTargets вычисляет broadcast по маске локального интерфейса.
+// Для удалённых сетей маска неизвестна: адрес x.x.x.255 не угадываем.
+func packetTargets(ip net.IP, networks []*net.IPNet) []packetTarget {
+	targets := []packetTarget{}
+	seen := make(map[string]bool)
+	add := func(source, destination net.IP) {
+		key := source.String() + "/" + destination.String()
+		if !seen[key] {
+			seen[key] = true
+			targets = append(targets, packetTarget{source, destination})
+		}
+	}
+	if ip != nil && !ip.Equal(net.IPv4bcast) {
+		add(nil, ip)
+	}
+	for _, network := range networks {
+		local := network.IP.To4()
+		ones, bits := network.Mask.Size()
+		if local == nil || bits != 32 || ones >= 31 || (ip != nil && !ip.Equal(net.IPv4bcast) && !network.Contains(ip)) {
+			continue
+		}
+		broadcast := make(net.IP, 4)
+		for i := range broadcast {
+			broadcast[i] = local[i] | ^network.Mask[i]
+		}
+		add(local, broadcast)
+	}
+	add(nil, net.IPv4bcast)
+	return targets
+}
+
+func localIPv4Networks() []*net.IPNet {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	var networks []*net.IPNet
+	for _, iface := range interfaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagBroadcast == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addresses, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, address := range addresses {
+			if network, ok := address.(*net.IPNet); ok && network.IP.To4() != nil {
+				networks = append(networks, network)
+			}
+		}
+	}
+	return networks
 }
 
 // createMagicPacket создает magic packet для WOL
@@ -87,21 +137,27 @@ func createMagicPacket(hwAddr net.HardwareAddr) []byte {
 
 // ValidateMAC проверяет формат MAC адреса
 func ValidateMAC(macStr string) error {
-	_, err := net.ParseMAC(macStr)
+	_, err := parseMAC(macStr)
 	return err
 }
 
 // NormalizeMAC нормализует MAC адрес к формату XX:XX:XX:XX:XX:XX
 func NormalizeMAC(macStr string) (string, error) {
-	// Удаляем дефисы и заменяем их на двоеточия
-	macStr = strings.ReplaceAll(macStr, "-", ":")
-	// Удаляем все пробелы
-	macStr = strings.ReplaceAll(macStr, " ", "")
-
-	hwAddr, err := net.ParseMAC(macStr)
+	hwAddr, err := parseMAC(macStr)
 	if err != nil {
 		return "", err
 	}
 
 	return hwAddr.String(), nil
+}
+
+func parseMAC(macStr string) (net.HardwareAddr, error) {
+	hwAddr, err := net.ParseMAC(strings.TrimSpace(macStr))
+	if err != nil {
+		return nil, err
+	}
+	if len(hwAddr) != 6 {
+		return nil, fmt.Errorf("для Wake-on-LAN требуется MAC адрес длиной 6 байт")
+	}
+	return hwAddr, nil
 }

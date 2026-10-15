@@ -103,8 +103,8 @@ INDEX.md                        - Этот файл
 - WOL включен в BIOS целевого устройства
 
 ### Для разработки из исходного кода
-- Go 1.21+
-- Wails 2.6+
+- Go 1.22+
+- Wails 2.12+
 - Git (для клонирования репозитория)
 - Для macOS: Xcode Command Line Tools (`xcode-select --install`)
 - Для Linux: GTK 3+ и WebKit2GTK4 (`sudo apt-get install libgtk-3-dev libwebkit2gtk-4.0-dev`)
@@ -131,8 +131,8 @@ INDEX.md                        - Этот файл
 
 ## 📞 Поддержка и связь
 
-- 🐛 **Найден баг?** Создайте [Issue](https://github.com/bikuta13/WOL-Pro/issues) на GitHub
-- 💡 **Есть идея?** Обсудите в [Discussions](https://github.com/bikuta13/WOL-Pro/discussions)
+- 🐛 **Найден баг?** Создайте [Issue](https://github.com/bikuta13/WOLPRo/issues) на GitHub
+- 💡 **Есть идея?** Обсудите в [Discussions](https://github.com/bikuta13/WOLPRo/discussions)
 - ❓ **Вопрос?** Смотрите [QUICKSTART.md FAQ](QUICKSTART.md#часто-задаваемые-вопросы)
 
 ## 📄 Лицензия

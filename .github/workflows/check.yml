@@ -1,0 +1,43 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Test backend
+        run: go test ./internal/...
+      - name: Vet backend
+        run: go vet ./internal/...
+      - name: Test frontend
+        run: node --test frontend/tests/app.test.cjs
+      - name: Detect data races
+        if: runner.os == 'Linux'
+        run: go test -race ./internal/...
+      - name: Check desktop application
+        if: runner.os == 'Windows'
+        run: |
+          go test ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go vet ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          wails build -platform windows/amd64 -m -nosyncgomod -s

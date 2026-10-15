@@ -8,7 +8,13 @@ class WOLApp {
         this.selectedDeviceId = null;
         this.isEditMode = false;
         this.devices = [];
-        this.scannedMAC = null;
+        this.scanResult = null;
+        this.scanGeneration = 0;
+        this.activeScan = null;
+        this.isSaving = false;
+        this.isDeleting = false;
+        this.editingDeviceId = null;
+        this.pendingDeleteId = null;
         this.init();
     }
 
@@ -61,6 +67,7 @@ class WOLApp {
         document.getElementById('scanIP').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.onStartScan();
         });
+        document.getElementById('scanIP').addEventListener('input', () => this.invalidateScan());
     }
 
     async loadDevices() {
@@ -73,12 +80,16 @@ class WOLApp {
         } catch (error) {
             console.error('Ошибка загрузки устройств:', error);
             this.showError(`Ошибка загрузки: ${error}`);
+            this.setStatus('Ошибка загрузки устройств', '❌');
         }
     }
 
     renderTable() {
         const tbody = document.getElementById('tableBody');
         tbody.textContent = '';
+        if (!this.devices.some(device => device.id === this.selectedDeviceId)) {
+            this.selectedDeviceId = null;
+        }
 
         if (this.devices.length === 0) {
             const row = document.createElement('tr');
@@ -96,6 +107,7 @@ class WOLApp {
         this.devices.forEach((device) => {
             const row = document.createElement('tr');
             row.dataset.deviceId = device.id;
+            if (device.id === this.selectedDeviceId) row.classList.add('selected');
             row.addEventListener('click', () => this.selectDevice(device.id, row));
 
             [device.name, device.mac_address, device.ip_address || '—'].forEach((value) => {
@@ -146,7 +158,9 @@ class WOLApp {
     }
 
     onAddClick() {
+        if (this.isSaving) return;
         this.isEditMode = false;
+        this.editingDeviceId = null;
         this.openModal('Добавить устройство');
         document.getElementById('deviceName').value = '';
         document.getElementById('deviceMac').value = '';
@@ -155,6 +169,7 @@ class WOLApp {
     }
 
     onEditClick() {
+        if (this.isSaving) return;
         if (!this.selectedDeviceId) {
             this.showError('Выберите устройство');
             return;
@@ -167,6 +182,7 @@ class WOLApp {
         }
 
         this.isEditMode = true;
+        this.editingDeviceId = device.id;
         this.openModal(`Редактировать: ${device.name}`);
         document.getElementById('deviceName').value = device.name;
         document.getElementById('deviceMac').value = device.mac_address;
@@ -175,6 +191,7 @@ class WOLApp {
     }
 
     async onDeleteClick() {
+        if (this.isDeleting) return;
         if (!this.selectedDeviceId) {
             this.showError('Выберите устройство');
             return;
@@ -186,6 +203,7 @@ class WOLApp {
             return;
         }
 
+        this.pendingDeleteId = device.id;
         this.showConfirm(`Удалить устройство "${device.name}"?`);
     }
 
@@ -196,18 +214,21 @@ class WOLApp {
 
     closeConfirmModal() {
         document.getElementById('confirmModal').classList.remove('open');
-        this._confirmResolve = null;
+        this.pendingDeleteId = null;
     }
 
     onConfirmYes() {
+        const id = this.pendingDeleteId;
         this.closeConfirmModal();
-        this.executeDelete();
+        if (id) return this.executeDelete(id);
     }
 
-    async executeDelete() {
+    async executeDelete(id) {
+        if (this.isDeleting) return;
+        this.isDeleting = true;
         try {
             this.setStatus('Удаление...', '⏳');
-            const result = await window.go.app.AppInstance.DeleteDevice(this.selectedDeviceId);
+            const result = await window.go.app.AppInstance.DeleteDevice(id);
             if (!result.success) {
                 this.showError(result.message);
                 this.setStatus('Ошибка удаления', '❌');
@@ -215,15 +236,19 @@ class WOLApp {
             }
 
             this.showSuccess(result.message);
-            this.selectedDeviceId = null;
+            if (this.selectedDeviceId === id) this.selectedDeviceId = null;
             await this.loadDevices();
         } catch (error) {
             console.error('Ошибка удаления:', error);
             this.showError(`Ошибка: ${error}`);
+            this.setStatus('Ошибка удаления', '❌');
+        } finally {
+            this.isDeleting = false;
         }
     }
 
     async onSaveDevice() {
+        if (this.isSaving || !document.getElementById('deviceModal').classList.contains('open')) return;
         const name = document.getElementById('deviceName').value.trim();
         const mac = document.getElementById('deviceMac').value.trim();
         const ip = document.getElementById('deviceIp').value.trim();
@@ -233,12 +258,14 @@ class WOLApp {
             return;
         }
 
+        this.isSaving = true;
+        this.setDeviceFormBusy(true);
         try {
             this.setStatus('Сохранение...', '⏳');
 
             if (this.isEditMode) {
                 const result = await window.go.app.AppInstance.UpdateDevice(
-                    this.selectedDeviceId, name, mac, ip
+                    this.editingDeviceId, name, mac, ip
                 );
                 if (result.success) {
                     this.showSuccess(result.message);
@@ -258,12 +285,22 @@ class WOLApp {
                 }
             }
 
-            this.closeModal();
+            this.closeModal(true);
             await this.loadDevices();
         } catch (error) {
             console.error('Ошибка сохранения:', error);
             this.showError(`Ошибка: ${error}`);
+            this.setStatus('Ошибка сохранения', '❌');
+        } finally {
+            this.isSaving = false;
+            this.setDeviceFormBusy(false);
         }
+    }
+
+    setDeviceFormBusy(busy) {
+        ['deviceName', 'deviceMac', 'deviceIp', 'btnSaveDevice', 'btnCancelModal'].forEach(id => {
+            document.getElementById(id).disabled = busy;
+        });
     }
 
     openModal(title) {
@@ -271,7 +308,8 @@ class WOLApp {
         document.getElementById('deviceModal').classList.add('open');
     }
 
-    closeModal() {
+    closeModal(force = false) {
+        if (this.isSaving && !force) return;
         document.getElementById('deviceModal').classList.remove('open');
     }
 
@@ -280,17 +318,27 @@ class WOLApp {
     }
 
     openScanModal() {
+        this.invalidateScan();
         document.getElementById('scanIP').value = '';
-        document.getElementById('scanResult').style.display = 'none';
-        document.getElementById('scanIP').focus();
         document.getElementById('scanModal').classList.add('open');
+        document.getElementById('scanIP').focus();
     }
 
     closeScanModal() {
+        this.invalidateScan();
         document.getElementById('scanModal').classList.remove('open');
     }
 
+    invalidateScan() {
+        this.scanGeneration++;
+        this.scanResult = null;
+        this.activeScan = null;
+        document.getElementById('scanResult').style.display = 'none';
+        document.getElementById('btnStartScan').disabled = false;
+    }
+
     async onStartScan() {
+        if (this.activeScan !== null) return;
         const ipAddr = document.getElementById('scanIP').value.trim();
 
         if (!ipAddr) {
@@ -298,41 +346,57 @@ class WOLApp {
             return;
         }
 
+        this.invalidateScan();
+        const generation = this.scanGeneration;
+        this.activeScan = generation;
         try {
             document.getElementById('btnStartScan').disabled = true;
             this.setStatus('Сканирование...', '⏳');
 
             const result = await window.go.app.AppInstance.ScanMACByIP(ipAddr);
+            if (generation !== this.scanGeneration || document.getElementById('scanIP').value.trim() !== ipAddr) return;
 
             if (result.success) {
                 document.getElementById('scanResultMAC').textContent = result.mac;
                 document.getElementById('scanResult').style.display = 'block';
                 this.showSuccess(result.message);
                 this.setStatus(result.message, '✅');
-                this.scannedMAC = result.mac;
+                this.scanResult = { mac: result.mac, ip: ipAddr };
             } else {
                 this.showError(result.message);
                 document.getElementById('scanResult').style.display = 'none';
                 this.setStatus('Сканирование не удалось', '❌');
             }
         } catch (error) {
+            if (generation !== this.scanGeneration) return;
             console.error('Ошибка сканирования:', error);
             this.showError(`Ошибка: ${error}`);
             this.setStatus('Ошибка сканирования', '❌');
         } finally {
-            document.getElementById('btnStartScan').disabled = false;
+            if (this.activeScan === generation) {
+                this.activeScan = null;
+                document.getElementById('btnStartScan').disabled = false;
+            }
         }
     }
 
     useScanResult() {
-        if (this.scannedMAC) {
+        if (this.isSaving) return;
+        const result = this.scanResult;
+        if (result && result.ip !== document.getElementById('scanIP').value.trim()) {
+            this.invalidateScan();
+            this.showError('IP адрес изменён. Выполните сканирование ещё раз.');
+            return;
+        }
+        if (result) {
             this.closeScanModal();
             // Открываем модал добавления с заполненными данными из сканера
             this.isEditMode = false;
+            this.editingDeviceId = null;
             this.openModal('Добавить устройство');
             document.getElementById('deviceName').value = '';
-            document.getElementById('deviceMac').value = this.scannedMAC;
-            document.getElementById('deviceIp').value = document.getElementById('scanIP').value.trim();
+            document.getElementById('deviceMac').value = result.mac;
+            document.getElementById('deviceIp').value = result.ip;
             document.getElementById('deviceName').focus();
         }
     }

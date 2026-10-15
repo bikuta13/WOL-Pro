@@ -5,8 +5,8 @@
 ## Предварительные требования
 
 ### Для разработки
-- **Go 1.21 или выше**
-- **Wails 2.6 или выше**
+- **Go 1.22 или выше**
+- **Wails 2.12 или выше**
 - **Git** - для клонирования репозитория
 
 ### Для сборки под macOS
@@ -47,7 +47,7 @@ go version
 ### 2. Установка Wails
 
 ```bash
-go install github.com/wailsapp/wails/v2/cmd/wails@latest
+go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
 ```
 
 Убедитесь, что Wails в PATH:
@@ -58,8 +58,8 @@ wails version
 ### 3. Клонирование проекта
 
 ```bash
-git clone https://github.com/bikuta13/WOL-Pro.git
-cd wol-pro
+git clone https://github.com/bikuta13/WOLPRo.git
+cd WOLPRo
 ```
 
 ### 4. Загрузка зависимостей Go
@@ -324,7 +324,7 @@ wails build -platform darwin/arm64 -o "WOL Pro" -w
 Для сборки Linux версии на macOS/Windows:
 
 ```dockerfile
-FROM golang:1.21-alpine
+FROM golang:1.22-alpine
 
 RUN apk add --no-cache \
     git \
@@ -350,4 +350,4 @@ RUN wails build -platform linux/amd64 -o wol-pro
 
 - [Документация Wails](https://wails.io/docs)
 - [Go Official](https://golang.org)
-- [GitHub Issues](https://github.com/bikuta13/WOL-Pro/issues)
+- [GitHub Issues](https://github.com/bikuta13/WOLPRo/issues)

@@ -6,7 +6,7 @@
 
 ### Способ 1️⃣: Использование готового приложения (2 минуты)
 
-Скачайте готовое приложение для вашей платформы с [GitHub Releases](https://github.com/bikuta13/WOL-Pro/releases):
+Скачайте готовое приложение для вашей платформы с [GitHub Releases](https://github.com/bikuta13/WOLPRo/releases):
 - **Windows**: `WOL-Pro.exe`
 - **macOS**: `WOL-Pro.app`
 - **Linux**: `wol-pro`
@@ -14,8 +14,8 @@
 ### Способ 2️⃣: Сборка из исходного кода (5 минут)
 
 **Требования**:
-- **Go 1.21+**
-- **Wails 2.6+**
+- **Go 1.22+**
+- **Wails 2.12+**
 - **Git**
 
 **Установка (macOS/Linux)**:
@@ -24,11 +24,11 @@
 # Скачайте с https://golang.org/dl или brew install go
 
 # 2. Установить Wails
-go install github.com/wailsapp/wails/v2/cmd/wails@latest
+go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
 
 # 3. Клонировать репозиторий
-git clone https://github.com/bikuta13/WOL-Pro.git
-cd wol-pro
+git clone https://github.com/bikuta13/WOLPRo.git
+cd WOLPRo
 
 # 4. Запустить в режиме разработки
 wails dev
@@ -159,7 +159,7 @@ wails build -platform linux/amd64 -o "wol-pro"
 go version
 
 # Установите Wails
-go install github.com/wailsapp/wails/v2/cmd/wails@latest
+go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
 
 # Запустите
 wails dev

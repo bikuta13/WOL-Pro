@@ -51,7 +51,10 @@ type Result struct {
 }
 
 // GetDevices возвращает все устройства
-func (a *AppInstance) GetDevices() []Device {
+func (a *AppInstance) GetDevices() ([]Device, error) {
+	if err := a.manager.Err(); err != nil {
+		return nil, err
+	}
 	devices := a.manager.GetAll()
 	log.Printf("📋 GetDevices вызван, всего устройств: %d", len(devices))
 	result := make([]Device, len(devices))
@@ -64,7 +67,7 @@ func (a *AppInstance) GetDevices() []Device {
 		}
 		log.Printf("  - %s (%s)", dev.Name, dev.ID)
 	}
-	return result
+	return result, nil
 }
 
 // AddDevice добавляет новое устройство

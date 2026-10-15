@@ -15,15 +15,15 @@
 
 ## Требования
 
-- **Go 1.21+** - для сборки из исходного кода
-- **Wails 2.6+** - для сборки и разработки
+- **Go 1.22+** - для сборки из исходного кода
+- **Wails 2.12+** - для сборки и разработки
 - Для готового приложения: Windows 10+, macOS 11+, Linux с GTK3+
 
 ## Быстрый старт
 
 ### Использование готового приложения
 
-Скачайте бинарный файл для вашей платформы с [GitHub Releases](https://github.com/bikuta13/WOL-Pro/releases) или из папки [release-builds](release-builds/).
+Скачайте бинарный файл для вашей платформы с [GitHub Releases](https://github.com/bikuta13/WOLPRo/releases) или из папки [release-builds](release-builds/).
 
 Доступные готовые сборки:
 - `WOL-Pro-macOS-arm64.zip` - macOS Apple Silicon (M1/M2/M3/M4)
@@ -34,14 +34,14 @@
 
 ```bash
 # 1. Клонирование
-git clone https://github.com/bikuta13/WOL-Pro.git
-cd wol-pro
+git clone https://github.com/bikuta13/WOLPRo.git
+cd WOLPRo
 
 # 2. Установка Go (если еще не установлен)
 # Скачайте с https://golang.org/dl
 
 # 3. Установка Wails
-go install github.com/wailsapp/wails/v2/cmd/wails@latest
+go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
 
 # 4. Запуск в режиме разработки (с горячей перезагрузкой)
 wails dev
@@ -153,6 +153,29 @@ ifconfig
 ```
 ~/.config/wol-pro/devices.json
 ```
+
+Перед заменой файла приложение полностью записывает новую версию во временный файл.
+Предыдущая корректная версия сохраняется рядом в `devices.json.bak`.
+Если исходный JSON повреждён или содержит некорректные устройства, приложение
+показывает ошибку загрузки и блокирует сохранение, чтобы не затереть данные.
+Для восстановления закройте приложение, сохраните повреждённый файл отдельно,
+скопируйте `devices.json.bak` в `devices.json` и снова запустите приложение.
+Резервная копия появляется со второго успешного сохранения и содержит предыдущую версию списка.
+
+## Проверка изменений
+
+```bash
+go test ./internal/...
+go vet ./internal/...
+node --test frontend/tests/app.test.cjs
+```
+
+Для тестов интерфейса нужен Node.js 22+. Проверки не используют настоящий список
+устройств и не отправляют WOL-пакеты в сеть. На Windows также выполните
+`go test ./...`, `go vet ./...` и `wails build`. Для проверки гонок используйте
+`go test -race ./internal/...` в среде с поддержкой CGO и C-компилятором.
+GitHub Actions запускает тесты на Windows, Linux и macOS, проверяет гонки на Linux
+и собирает приложение для Windows.
 
 ## Предварительные условия для WOL
 

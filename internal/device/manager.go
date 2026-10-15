@@ -29,6 +29,7 @@ type Manager struct {
 	devices  map[string]*Device
 	mu       sync.RWMutex
 	filepath string
+	loadErr  error
 }
 
 // NewManager создает новый менеджер устройств
@@ -36,24 +37,40 @@ func NewManager() *Manager {
 	m := &Manager{
 		devices: make(map[string]*Device),
 	}
-	m.filepath = m.getConfigPath()
-	m.Load()
+	var err error
+	m.filepath, err = configPath()
+	if err != nil {
+		m.loadErr = err
+	} else if err := m.Load(); err != nil {
+		log.Printf("Не удалось загрузить устройства: %v", err)
+	}
 	return m
 }
 
-// getConfigPath возвращает путь к файлу конфигурации
-func (m *Manager) getConfigPath() string {
+// configPath сохраняет совместимость с расположением данных предыдущих версий.
+func configPath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		homeDir = "."
+		return "", fmt.Errorf("не удалось определить домашнюю папку: %w", err)
 	}
 	configDir := filepath.Join(homeDir, ".config", "wol-pro")
-	os.MkdirAll(configDir, 0755)
-	return filepath.Join(configDir, "devices.json")
+	if err := os.MkdirAll(configDir, 0700); err != nil {
+		return "", fmt.Errorf("не удалось создать папку устройств: %w", err)
+	}
+	return filepath.Join(configDir, "devices.json"), nil
+}
+
+// Err сообщает об ошибке загрузки, которая запрещает перезапись хранилища.
+func (m *Manager) Err() error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.loadErr
 }
 
 // Add добавляет новое устройство
 func (m *Manager) Add(name, macAddr, ipAddr string) (string, error) {
+	name = strings.TrimSpace(name)
+	ipAddr = strings.TrimSpace(ipAddr)
 	// Валидация
 	if name == "" {
 		return "", fmt.Errorf("название устройства не может быть пустым")
@@ -97,7 +114,12 @@ func (m *Manager) Add(name, macAddr, ipAddr string) (string, error) {
 func (m *Manager) Get(id string) *Device {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.devices[id]
+	dev := m.devices[id]
+	if dev == nil {
+		return nil
+	}
+	copy := *dev
+	return &copy
 }
 
 // GetAll возвращает все устройства
@@ -107,12 +129,16 @@ func (m *Manager) GetAll() []*Device {
 
 	devices := make([]*Device, 0, len(m.devices))
 	for _, dev := range m.devices {
-		devices = append(devices, dev)
+		copy := *dev
+		devices = append(devices, &copy)
 	}
 	sort.SliceStable(devices, func(i, j int) bool {
 		left := strings.ToLower(devices[i].Name)
 		right := strings.ToLower(devices[j].Name)
 		if left == right {
+			if devices[i].CreatedAt == devices[j].CreatedAt {
+				return devices[i].ID < devices[j].ID
+			}
 			return devices[i].CreatedAt < devices[j].CreatedAt
 		}
 		return left < right
@@ -122,6 +148,8 @@ func (m *Manager) GetAll() []*Device {
 
 // Update обновляет устройство
 func (m *Manager) Update(id, name, macAddr, ipAddr string) error {
+	name = strings.TrimSpace(name)
+	ipAddr = strings.TrimSpace(ipAddr)
 	if name == "" {
 		return fmt.Errorf("название устройства не может быть пустым")
 	}
@@ -182,8 +210,8 @@ func (m *Manager) Delete(id string) error {
 
 // Save сохраняет устройства в JSON файл (потокобезопасный, вызывается извне)
 func (m *Manager) Save() error {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	return m.saveInternal()
 }
@@ -195,10 +223,14 @@ func (m *Manager) save() error {
 
 // saveInternal внутренняя реализация сохранения (мьютекс должен быть захвачен вызывающей стороной)
 func (m *Manager) saveInternal() error {
+	if m.loadErr != nil {
+		return fmt.Errorf("сохранение заблокировано из-за ошибки загрузки: %w", m.loadErr)
+	}
 	devices := make([]*Device, 0, len(m.devices))
 	for _, dev := range m.devices {
 		devices = append(devices, dev)
 	}
+	sort.Slice(devices, func(i, j int) bool { return devices[i].ID < devices[j].ID })
 
 	log.Printf("💾 Сохранение %d устройств в %s", len(devices), m.filepath)
 
@@ -208,10 +240,20 @@ func (m *Manager) saveInternal() error {
 		return err
 	}
 
-	err = os.WriteFile(m.filepath, data, 0644)
-	if err != nil {
-		log.Printf("❌ Ошибка записи файла: %v", err)
-		return err
+	// Сохраняем предыдущую корректную версию до замены основного файла.
+	previous, err := os.ReadFile(m.filepath)
+	if err == nil {
+		if _, err := decodeDevices(previous); err != nil {
+			return fmt.Errorf("файл устройств повреждён; исходный файл сохранён: %w", err)
+		}
+		if err := writeFileSafely(m.filepath+".bak", previous); err != nil {
+			return fmt.Errorf("не удалось создать резервную копию: %w", err)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("не удалось прочитать предыдущую версию: %w", err)
+	}
+	if err := writeFileSafely(m.filepath, data); err != nil {
+		return fmt.Errorf("не удалось записать устройства: %w", err)
 	}
 
 	log.Printf("✅ Сохранено успешно")
@@ -219,12 +261,16 @@ func (m *Manager) saveInternal() error {
 }
 
 // Load загружает устройства из JSON файла
-func (m *Manager) Load() error {
+func (m *Manager) Load() (err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer func() { m.loadErr = err }()
 	log.Printf("📖 Загрузка устройств из %s", m.filepath)
 
 	data, err := os.ReadFile(m.filepath)
 	if err != nil {
 		if os.IsNotExist(err) {
+			m.devices = make(map[string]*Device)
 			log.Printf("ℹ️  Файл конфигурации еще не существует")
 			return nil // Файл еще не создан, это нормально
 		}
@@ -232,22 +278,64 @@ func (m *Manager) Load() error {
 		return err
 	}
 
-	var devices []*Device
-	if err := json.Unmarshal(data, &devices); err != nil {
-		log.Printf("❌ Ошибка десериализации: %v", err)
-		return err
+	devices, err := decodeDevices(data)
+	if err != nil {
+		return fmt.Errorf("не удалось загрузить %s; исходный файл сохранён: %w", m.filepath, err)
 	}
-
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	for _, dev := range devices {
-		m.devices[dev.ID] = dev
-		log.Printf("  ✓ Загружено: %s (%s)", dev.Name, dev.ID)
-	}
-
+	m.devices = devices
 	log.Printf("✅ Загружено %d устройств", len(devices))
 	return nil
+}
+
+func decodeDevices(data []byte) (map[string]*Device, error) {
+	var records []*Device
+	if err := json.Unmarshal(data, &records); err != nil {
+		return nil, err
+	}
+	if records == nil {
+		return nil, fmt.Errorf("ожидался JSON-массив устройств")
+	}
+	devices := make(map[string]*Device, len(records))
+	for i, dev := range records {
+		if dev == nil || strings.TrimSpace(dev.ID) == "" || strings.TrimSpace(dev.Name) == "" {
+			return nil, fmt.Errorf("запись %d: отсутствуют устройство, ID или название", i+1)
+		}
+		if _, exists := devices[dev.ID]; exists {
+			return nil, fmt.Errorf("повторяющийся ID устройства: %s", dev.ID)
+		}
+		mac, err := wol.NormalizeMAC(dev.MacAddr)
+		if err != nil {
+			return nil, fmt.Errorf("устройство %s: %w", dev.ID, err)
+		}
+		dev.Name = strings.TrimSpace(dev.Name)
+		dev.MacAddr = mac
+		dev.IPAddr = strings.TrimSpace(dev.IPAddr)
+		if err := validateIPv4(dev.IPAddr); err != nil {
+			return nil, fmt.Errorf("устройство %s: %w", dev.ID, err)
+		}
+		devices[dev.ID] = dev
+	}
+	return devices, nil
+}
+
+// writeFileSafely не обрезает исходный файл до успешной записи новой версии.
+func writeFileSafely(path string, data []byte) error {
+	file, err := os.CreateTemp(filepath.Dir(path), ".devices-*.tmp")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(file.Name())
+	defer file.Close()
+	if _, err := file.Write(data); err != nil {
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return os.Rename(file.Name(), path)
 }
 
 func validateIPv4(ipAddr string) error {
